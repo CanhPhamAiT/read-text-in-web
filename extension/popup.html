@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Metruyencv Reader</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Metruyencv Reader</h1>
+      <p>Chọn tab đang mở chương truyện và nhấn đọc.</p>
+    </header>
+    <section class="status">
+      <span class="label">Trạng thái:</span>
+      <span id="statusText">Chưa kết nối</span>
+    </section>
+    <section class="chapter">
+      <span class="label">Chương:</span>
+      <span id="chapterName">-</span>
+    </section>
+    <form id="controls">
+      <label>
+        Giọng đọc
+        <select id="voiceSelect"></select>
+      </label>
+      <label>
+        Tốc độ: <span id="rateValue">1.0</span>
+        <input type="range" id="rate" min="0.8" max="1.4" step="0.05" value="1" />
+      </label>
+      <label>
+        Cao độ: <span id="pitchValue">1.0</span>
+        <input type="range" id="pitch" min="0.6" max="1.4" step="0.05" value="1" />
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" id="sanitize" checked />
+        Loại ký tự đặc biệt
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" id="autoNext" />
+        Tự chuyển chương kế tiếp
+      </label>
+      <div class="buttons">
+        <button type="button" id="startBtn">Bắt đầu</button>
+        <button type="button" id="pauseBtn">Tạm dừng</button>
+        <button type="button" id="resumeBtn">Tiếp tục</button>
+        <button type="button" id="stopBtn" class="danger">Dừng</button>
+      </div>
+      <p class="hint">
+        * Hãy mở trang chương truyện trước khi nhấn "Bắt đầu". Extension chỉ hoạt
+        động trên metruyencv.com.
+      </p>
+      <p id="error" class="error" hidden></p>
+    </form>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>
+

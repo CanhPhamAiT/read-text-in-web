@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Metruyencv Chapter Reader",
+  "description": "Đọc to nội dung chương trên metruyencv.com và tự chuyển chương kế tiếp.",
+  "version": "1.0.0",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://metruyencv.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Metruyencv Reader"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://metruyencv.com/truyen/*/chuong-*"
+      ],
+      "js": [
+        "contentScript.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
+

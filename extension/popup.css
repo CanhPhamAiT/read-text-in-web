@@ -1,0 +1,98 @@
+:root {
+  color-scheme: light dark;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 14px;
+}
+
+body {
+  min-width: 300px;
+  margin: 0;
+  padding: 16px;
+  background: #0f172a;
+  color: #f1f5f9;
+}
+
+header {
+  margin-bottom: 12px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 16px;
+}
+
+p {
+  margin: 4px 0 0;
+  color: #cbd5f5;
+}
+
+.status,
+.chapter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.label {
+  font-weight: 600;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+select,
+input[type='range'] {
+  width: 100%;
+}
+
+.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+button {
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.danger {
+  background: #dc2626;
+}
+
+.hint {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.error {
+  color: #f87171;
+  font-size: 13px;
+}
+
