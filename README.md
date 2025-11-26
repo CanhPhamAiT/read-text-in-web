@@ -7,7 +7,7 @@ Chrome extension giúp đọc to chương truyện trên `metruyencv.com`, tự 
 - Highlight trực tiếp câu đang đọc ngay trên trang và auto-scroll theo.
 - Cho phép chọn giọng, tốc độ, cao độ và bật/tắt làm sạch ký tự.
 - Theo dõi trạng thái đọc, tạm dừng/tiếp tục/dừng ngay từ popup.
-- Tự động chuyển sang chương kế tiếp (dựa trên `window.chapterData`) và tiếp tục đọc.
+- Tự động chuyển sang chương kế tiếp (bật mặc định, dựa trên `window.chapterData`) và tiếp tục đọc.
 
 ## Cài đặt
 1. Chạy `npm install` để chuẩn bị môi trường (không bắt buộc cho extension nhưng giúp quản lý dự án).

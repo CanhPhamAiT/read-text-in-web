@@ -17,7 +17,7 @@
       rate: 1,
       pitch: 1,
       voiceURI: null,
-      autoNext: false,
+      autoNext: true,
       sanitize: true
     }
   };
