@@ -97,19 +97,25 @@
 
   const emit = (payload) => {
     try {
-      // Kiểm tra xem có đang chạy trong extension context không
+      // Send to PWA via postMessage
+      window.postMessage({ 
+        type: 'chapter-reader-status', 
+        status: payload.status,
+        chapter: payload.chapter,
+        totalChunks: payload.totalChunks,
+        currentChunk: payload.currentChunk,
+        hasNext: payload.hasNext
+      }, '*');
+      
+      // Also try extension context if available (for backward compatibility)
       if (typeof chrome !== 'undefined' && 
           chrome.runtime && 
           chrome.runtime.sendMessage &&
           chrome.runtime.id) {
-        chrome.runtime.sendMessage({ type: 'reader-status', payload }).catch(() => {
-          // Silently fail if popup is not open or runtime is not available
-        });
+        chrome.runtime.sendMessage({ type: 'reader-status', payload }).catch(() => {});
       }
     } catch (error) {
-      // Ignore errors when runtime is not available
-      // This can happen if extension is reloaded or context is lost
-      console.debug('Cannot send message to runtime:', error);
+      console.debug('Cannot send message:', error);
     }
   };
 
@@ -869,42 +875,79 @@
       }))
     );
 
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (!message?.type) return;
-    switch (message.type) {
-      case 'getState':
-        sendResponse(buildStatus());
-        break;
-      case 'startReading':
-        (async () => {
-          try {
-            await startReading(message.settings);
-            sendResponse({ success: true });
-          } catch (error) {
-            sendResponse({ success: false, error: error.message });
+  // Listen for messages from PWA or extension
+  window.addEventListener('message', async (event) => {
+    // Only accept messages from same origin or trusted sources
+    if (event.data?.type?.startsWith('chapter-reader-')) {
+      const message = event.data;
+      
+      switch (message.type) {
+        case 'chapter-reader-command':
+          if (message.command === 'start') {
+            try {
+              await startReading(message.settings || {});
+              window.postMessage({ type: 'chapter-reader-response', success: true }, '*');
+            } catch (error) {
+              window.postMessage({ type: 'chapter-reader-response', success: false, error: error.message }, '*');
+            }
+          } else if (message.command === 'pause') {
+            pauseReading();
+          } else if (message.command === 'resume') {
+            resumeReading();
+          } else if (message.command === 'stop') {
+            stopReading();
+          } else if (message.command === 'getState') {
+            window.postMessage({ type: 'chapter-reader-state', state: buildStatus() }, '*');
+          } else if (message.command === 'listVoices') {
+            const voices = await getVoices();
+            window.postMessage({ type: 'chapter-reader-voices', voices }, '*');
           }
-        })();
-        return true; // Keep channel open for async response
-      case 'pauseReading':
-        pauseReading();
-        sendResponse({ success: true });
-        break;
-      case 'resumeReading':
-        resumeReading();
-        sendResponse({ success: true });
-        break;
-      case 'stopReading':
-        stopReading();
-        sendResponse({ success: true });
-        break;
-      case 'listVoices':
-        getVoices().then((voices) => sendResponse({ voices }));
-        return true;
-      default:
-        break;
+          break;
+        default:
+          break;
+      }
     }
-    return true;
   });
+
+  // Also listen for extension messages (backward compatibility)
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (!message?.type) return;
+      switch (message.type) {
+        case 'getState':
+          sendResponse(buildStatus());
+          break;
+        case 'startReading':
+          (async () => {
+            try {
+              await startReading(message.settings);
+              sendResponse({ success: true });
+            } catch (error) {
+              sendResponse({ success: false, error: error.message });
+            }
+          })();
+          return true;
+        case 'pauseReading':
+          pauseReading();
+          sendResponse({ success: true });
+          break;
+        case 'resumeReading':
+          resumeReading();
+          sendResponse({ success: true });
+          break;
+        case 'stopReading':
+          stopReading();
+          sendResponse({ success: true });
+          break;
+        case 'listVoices':
+          getVoices().then((voices) => sendResponse({ voices }));
+          return true;
+        default:
+          break;
+      }
+      return true;
+    });
+  }
 
   window.addEventListener('beforeunload', () => {
     stopAllPlayback();

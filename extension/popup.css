@@ -165,3 +165,35 @@ button:disabled {
   background: #64748b;
 }
 
+/* Mobile optimizations */
+@media (max-width: 400px) {
+  body {
+    padding: 12px;
+    font-size: 13px;
+  }
+  
+  button {
+    padding: 10px;
+    min-height: 44px; /* Better touch target */
+  }
+  
+  .buttons {
+    grid-template-columns: 1fr; /* Stack buttons on very small screens */
+  }
+  
+  input[type='range'] {
+    min-height: 44px; /* Better touch target for sliders */
+  }
+  
+  select {
+    min-height: 44px;
+    padding: 8px;
+  }
+}
+
+/* Ensure popup is scrollable on mobile */
+body {
+  max-height: 600px;
+  overflow-y: auto;
+}
+

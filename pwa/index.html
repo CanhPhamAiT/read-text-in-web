@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Đọc to nội dung chương truyện trên metruyencv.com và tangthuvien.net" />
+    <meta name="theme-color" content="#2563eb" />
+    <title>Chapter Reader - PWA</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="icon" type="image/png" href="icons/icon192.png" />
+  </head>
+  <body>
+    <header>
+      <h1>📖 Chapter Reader</h1>
+      <p>Đọc to nội dung chương truyện</p>
+    </header>
+
+    <section class="setup-section" id="setupSection">
+      <div class="card">
+        <h2>🚀 Bước 1: Cài đặt Bookmarklet</h2>
+        <p>Để sử dụng PWA này, bạn cần cài đặt bookmarklet vào trình duyệt:</p>
+        <ol>
+          <li>Kéo nút bên dưới vào thanh bookmark của trình duyệt</li>
+          <li>Hoặc copy link và thêm vào bookmark</li>
+        </ol>
+        <div class="bookmarklet-container">
+          <a href="#" id="bookmarkletLink" class="bookmarklet-btn" draggable="true">
+            📖 Chapter Reader
+          </a>
+          <button type="button" id="copyBookmarkletBtn" class="btn-secondary">Copy Link</button>
+        </div>
+        <div class="alert alert-info" id="bookmarkletAlert" hidden>
+          <strong>Đã copy!</strong> Dán vào bookmark của bạn.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📱 Bước 2: Mở trang truyện</h2>
+        <p>Mở trang chương truyện trên:</p>
+        <div class="site-links">
+          <a href="https://metruyencv.com" target="_blank" class="site-link">metruyencv.com</a>
+          <a href="https://tangthuvien.net" target="_blank" class="site-link">tangthuvien.net</a>
+        </div>
+        <p class="hint">Sau khi mở trang, click vào bookmarklet đã cài đặt ở bước 1.</p>
+      </div>
+    </section>
+
+    <section class="control-section" id="controlSection" hidden>
+      <div class="status-bar">
+        <div class="status-item">
+          <span class="label">Trạng thái:</span>
+          <span id="statusText">Chưa kết nối</span>
+        </div>
+        <div class="status-item">
+          <span class="label">Chương:</span>
+          <span id="chapterName">-</span>
+        </div>
+      </div>
+
+      <form id="controls" class="card">
+        <label>
+          TTS Engine
+          <select id="engineSelect">
+            <option value="browser">Browser (Web Speech API)</option>
+            <option value="coqui">Google TTS (Local Server)</option>
+          </select>
+        </label>
+
+        <div id="browserOptions" style="display: block;">
+          <label>
+            Giọng đọc
+            <select id="voiceSelect"></select>
+          </label>
+          <label>
+            Tốc độ: <span id="rateValue">1.0</span>
+            <input type="range" id="rate" min="0.8" max="2.4" step="0.05" value="1" />
+          </label>
+          <label>
+            Cao độ: <span id="pitchValue">1.0</span>
+            <input type="range" id="pitch" min="0.6" max="1.4" step="0.05" value="1" />
+          </label>
+        </div>
+
+        <div id="coquiOptions" style="display: none;">
+          <label>
+            Server URL
+            <input type="text" id="coquiUrl" value="http://localhost:5002" placeholder="http://localhost:5002" />
+          </label>
+          <div class="coqui-status">
+            <span class="label">Trạng thái server:</span>
+            <span id="coquiStatus">Chưa kiểm tra</span>
+            <button type="button" id="checkCoquiBtn" class="btn-small">Kiểm tra</button>
+          </div>
+          <label>
+            Giọng đọc
+            <select id="coquiVoiceSelect">
+              <option value="vi-VN-HoaiMyNeural">Hoài My (Nữ)</option>
+              <option value="vi-VN-NamMinhNeural">Nam Minh (Nam)</option>
+              <option value="en-US-JennyNeural">Jenny (English)</option>
+            </select>
+          </label>
+          <label>
+            Tốc độ: <span id="coquiRateValue">1.0</span>
+            <input type="range" id="coquiRate" min="0.5" max="2.5" step="0.1" value="1" />
+          </label>
+        </div>
+
+        <label class="checkbox">
+          <input type="checkbox" id="sanitize" checked />
+          Loại ký tự đặc biệt
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="autoNext" checked />
+          Tự chuyển chương kế tiếp
+        </label>
+
+        <div class="buttons">
+          <button type="button" id="startBtn" class="btn-primary">Bắt đầu</button>
+          <button type="button" id="pauseBtn" class="btn-secondary" disabled>Tạm dừng</button>
+          <button type="button" id="resumeBtn" class="btn-secondary" disabled>Tiếp tục</button>
+          <button type="button" id="stopBtn" class="btn-danger" disabled>Dừng</button>
+        </div>
+
+        <p id="error" class="error" hidden></p>
+      </form>
+    </section>
+
+    <footer>
+      <p class="hint">
+        💡 <strong>Tip:</strong> Sau khi cài đặt bookmarklet, bạn có thể đóng PWA này và sử dụng bookmarklet trực tiếp trên trang truyện.
+      </p>
+    </footer>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
+

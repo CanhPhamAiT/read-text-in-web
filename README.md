@@ -30,10 +30,44 @@ Extension Chrome/Edge để đọc to nội dung chương truyện trên metruye
 
 ## 📖 Cách sử dụng
 
-1. Mở trang chương truyện trên [metruyencv.com](https://metruyencv.com)
+1. Mở trang chương truyện trên [metruyencv.com](https://metruyencv.com) hoặc [tangthuvien.net](https://tangthuvien.net)
 2. Click vào icon extension trên thanh công cụ
 3. Chọn giọng đọc và tốc độ
 4. Nhấn "Bắt đầu" để bắt đầu đọc
+
+## 📱 Sử dụng trên Android
+
+### Option 1: PWA (Khuyến nghị) ⭐
+
+PWA có thể cài đặt như app native trên Android, không cần trình duyệt đặc biệt!
+
+📖 Xem hướng dẫn: [pwa/PWA_GUIDE.md](./pwa/PWA_GUIDE.md)
+
+**Ưu điểm:**
+- ✅ Cài đặt như app native
+- ✅ Hoạt động trên mọi trình duyệt (Chrome, Firefox, Safari)
+- ✅ UI tối ưu cho mobile
+- ✅ Hoạt động offline
+
+**Cách cài:**
+1. Host PWA lên GitHub Pages/Netlify/Vercel
+2. Mở PWA trong trình duyệt
+3. Menu → "Add to Home screen"
+4. Cài đặt bookmarklet để sử dụng
+
+### Option 2: Chrome Extension (Kiwi Browser)
+
+Extension có thể hoạt động trên Android thông qua **Kiwi Browser** hoặc **Yandex Browser**.
+
+📖 Xem hướng dẫn chi tiết: [ANDROID_GUIDE.md](./ANDROID_GUIDE.md)
+
+**Tóm tắt:**
+1. Cài đặt [Kiwi Browser](https://play.google.com/store/apps/details?id=com.kiwibrowser.browser) từ Play Store
+2. Mở menu → Extensions → Bật Developer mode
+3. Load extension từ thư mục `extension`
+4. Sử dụng như trên desktop
+
+⚠️ **Lưu ý:** Coqui TTS Server (local) không hoạt động trên Android. Sử dụng Web Speech API hoặc kết nối đến TTS server từ máy tính khác trong cùng mạng WiFi.
 
 ### TTS Server (Tùy chọn)
 

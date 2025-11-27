@@ -15,6 +15,7 @@
   ],
   "host_permissions": [
     "https://metruyencv.com/*",
+    "https://tangthuvien.net/*",
     "http://localhost:5002/*",
     "http://127.0.0.1:5002/*"
   ],
@@ -30,7 +31,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://metruyencv.com/truyen/*/chuong-*"
+        "https://metruyencv.com/truyen/*/chuong-*",
+        "https://tangthuvien.net/doc-truyen/*/*"
       ],
       "js": [
         "tesseract.min.js",
