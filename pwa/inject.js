@@ -1,8 +1,24 @@
 (() => {
-  if (window.__metruyen_reader_injected__) {
+  // Allow re-injection if script is reloaded
+  // Remove old instance if exists
+  if (window.__chapter_reader_state) {
+    // Clean up old instance
+    if (window.__chapter_reader_state.coquiAudio) {
+      window.__chapter_reader_state.coquiAudio.pause();
+      window.__chapter_reader_state.coquiAudio = null;
+    }
+    if (window.__chapter_reader_state.coquiAbortController) {
+      window.__chapter_reader_state.coquiAbortController.abort();
+      window.__chapter_reader_state.coquiAbortController = null;
+    }
+    speechSynthesis.cancel();
+  }
+  
+  // Set flag to prevent multiple simultaneous injections
+  if (window.__chapter_reader_injecting__) {
     return;
   }
-  window.__metruyen_reader_injected__ = true;
+  window.__chapter_reader_injecting__ = true;
 
   const AUTO_KEY = 'metruyencv:auto-read-settings';
   
@@ -51,6 +67,13 @@
     coquiAudio: null,
     coquiAbortController: null
   };
+  
+  // Store state globally so it can be cleaned up on re-injection
+  window.__chapter_reader_state = state;
+  
+  // Mark as injected (after state is set up)
+  window.__chapter_reader_injected__ = true;
+  window.__chapter_reader_injecting__ = false;
 
   // Improved regex: match any text, splitting by sentence-ending punctuation
   // Also handles text without punctuation as a single sentence
