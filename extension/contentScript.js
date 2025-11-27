@@ -28,7 +28,9 @@
     coquiAbortController: null
   };
 
-  const SENTENCE_REGEX = /[^.?!。？！…]+[.?!。？！…"]*\s*/g;
+  // Improved regex: match any text, splitting by sentence-ending punctuation
+  // Also handles text without punctuation as a single sentence
+  const SENTENCE_REGEX = /[^.?!。？！…\n]+[.?!。？！…]*\s*/g;
   let currentHighlight = null;
 
   const ensureHighlightStyles = () => {
@@ -100,31 +102,33 @@
     const nextIndex = data?.chapter?.next?.index;
     let hasNext = Boolean(slug && nextIndex);
     let nextUrl = hasNext ? `https://metruyencv.com/truyen/${slug}/chuong-${nextIndex}` : null;
+    let nextButton = null;
     
-    // Fallback: Try to find "Chương sau" button if chapterData is not available
+    // Fallback: Try to find "Chương sau" button
     if (!nextUrl) {
-      // Try finding by text content (avoid invalid CSS selectors)
       const buttons = Array.from(document.querySelectorAll('button, a'));
-      const nextBtn = buttons.find(btn => 
-        btn.textContent?.toLowerCase().includes('chương sau') ||
-        btn.textContent?.toLowerCase().includes('tiếp') ||
-        btn.getAttribute('aria-label')?.toLowerCase().includes('next')
-      );
+      const nextBtn = buttons.find(btn => {
+        const text = btn.textContent?.toLowerCase() || '';
+        return text.includes('chương sau') || text === 'sau';
+      });
+      
       if (nextBtn) {
+        // Check if it's a link with href
         const href = nextBtn.getAttribute('href') || nextBtn.closest('a')?.getAttribute('href');
         if (href && href.includes('chuong-')) {
           nextUrl = href.startsWith('http') ? href : `https://metruyencv.com${href}`;
           hasNext = true;
+        } else {
+          // It's a button without href - we'll click it
+          nextButton = nextBtn;
+          hasNext = true;
         }
       }
       
-      // Another fallback: Look for link with next chapter number
-      if (!nextUrl && currentIndex) {
-        const nextChapterLink = document.querySelector(`a[href*="chuong-${currentIndex + 1}"]`);
-        if (nextChapterLink) {
-          nextUrl = nextChapterLink.href;
-          hasNext = true;
-        }
+      // Another fallback: construct URL from current chapter
+      if (!nextUrl && !nextButton && slug && currentIndex) {
+        nextUrl = `https://metruyencv.com/truyen/${slug}/chuong-${currentIndex + 1}`;
+        hasNext = true;
       }
     }
     
@@ -134,25 +138,80 @@
       currentIndex,
       currentName,
       hasNext,
-      nextUrl
+      nextUrl,
+      nextButton
     };
   };
 
   const cleanText = (raw) => {
     if (!raw) return '';
-    let output = raw.replace(/\s+/g, ' ').trim();
+    // Remove quotes and brackets used for dialogue/special text
+    let output = raw.replace(/["'"'「」『』【】\[\]]/g, '');
+    output = output.replace(/\s+/g, ' ').trim();
     if (state.settings.sanitize) {
-      output = output.replace(/[^0-9A-Za-zÀ-ỹà-ỹ.,?!:;'"()\-\s–—]/g, '');
+      // Keep Vietnamese characters, numbers, basic punctuation
+      output = output.replace(/[^0-9A-Za-zÀ-ỹà-ỹ.,?!:;\-()\s–—~]/g, '');
     }
     return output;
   };
 
-  const createSentenceQueue = () => {
+  // Extract text from canvas using OCR
+  const extractTextFromCanvas = async (canvas) => {
+    try {
+      // Check if Tesseract is available
+      if (typeof Tesseract === 'undefined') {
+        console.warn('Tesseract.js không khả dụng, bỏ qua canvas OCR');
+        return null;
+      }
+
+      // Get canvas image data
+      const imageData = canvas.toDataURL('image/png');
+      
+      // Configure Tesseract for browser extension
+      // Use CDN for workers if local files aren't available
+      const workerOptions = {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            console.log(`OCR: ${Math.round(m.progress * 100)}%`);
+          }
+        }
+      };
+      
+      // Try to use CDN for workers (Tesseract.js v5 supports this)
+      try {
+        const worker = await Tesseract.createWorker('vie', 1, workerOptions);
+        const { data: { text } } = await worker.recognize(imageData);
+        await worker.terminate();
+        const cleaned = text.trim();
+        if (cleaned) {
+          console.log(`OCR thành công: "${cleaned.substring(0, 50)}..."`);
+        }
+        return cleaned;
+      } catch (workerError) {
+        console.warn('Không thể tạo Tesseract worker, thử phương pháp khác:', workerError);
+        // Fallback: try direct recognize (might work in some cases)
+        try {
+          const { data: { text } } = await Tesseract.recognize(imageData, 'vie', workerOptions);
+          return text.trim();
+        } catch (fallbackError) {
+          console.error('OCR fallback cũng thất bại:', fallbackError);
+          return null;
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi OCR canvas:', error);
+      return null;
+    }
+  };
+
+  const createSentenceQueue = async () => {
     const container = document.querySelector(CHAPTER_SELECTOR);
     if (!container) {
       throw new Error('Không tìm thấy nội dung chương.');
     }
     ensureHighlightStyles();
+    
+    // Step 1: Extract text from text nodes (existing spans and text)
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
     const candidates = [];
     let node;
@@ -164,8 +223,19 @@
 
     const queue = [];
     candidates.forEach((textNode) => {
-      const matches = textNode.textContent.match(SENTENCE_REGEX);
+      const rawText = textNode.textContent;
+      let matches = rawText.match(SENTENCE_REGEX);
+      
+      // Fallback: if no matches or text wasn't captured, use entire text as one segment
+      if (!matches || matches.join('').trim().length < rawText.trim().length * 0.8) {
+        const trimmed = rawText.trim();
+        if (trimmed) {
+          matches = [trimmed];
+        }
+      }
+      
       if (!matches) return;
+      
       const fragment = document.createDocumentFragment();
       matches.forEach((segment) => {
         if (!segment.trim()) {
@@ -183,14 +253,99 @@
       });
       textNode.replaceWith(fragment);
     });
+
+    // Step 2: Extract text from canvas elements using OCR
+    const canvasElements = container.querySelectorAll('canvas');
+    const canvasCount = canvasElements.length;
+    console.log(`Tìm thấy ${canvasCount} canvas elements`);
+    
+    if (canvasCount > 0) {
+      // Check if Tesseract is available
+      if (typeof Tesseract === 'undefined') {
+        console.warn('⚠️ Tesseract.js chưa được tải. Một số đoạn văn trong canvas có thể không được đọc.');
+        console.warn('Extension vẫn sẽ đọc các đoạn văn có sẵn trong text nodes.');
+      } else {
+        console.log('🔄 Bắt đầu OCR cho canvas elements...');
+      }
+      
+      let processedCount = 0;
+      for (const canvas of canvasElements) {
+        // Skip if canvas is too small (likely decorative)
+        if (canvas.width < 100 || canvas.height < 20) {
+          continue;
+        }
+        
+        // Check if canvas has already been processed (has a data attribute)
+        if (canvas.dataset.ocrProcessed === 'true') {
+          continue;
+        }
+        
+        try {
+          const canvasText = await extractTextFromCanvas(canvas);
+          if (canvasText && canvasText.trim()) {
+            processedCount++;
+            console.log(`✅ OCR thành công (${processedCount}/${canvasCount}): "${canvasText.substring(0, 50)}..."`);
+            
+            // Mark canvas as processed
+            canvas.dataset.ocrProcessed = 'true';
+            
+            // Split canvas text into sentences
+            let matches = canvasText.match(SENTENCE_REGEX);
+            if (!matches || matches.join('').trim().length < canvasText.trim().length * 0.8) {
+              const trimmed = canvasText.trim();
+              if (trimmed) {
+                matches = [trimmed];
+              }
+            }
+            
+            if (matches) {
+              matches.forEach((segment) => {
+                if (!segment.trim()) return;
+                
+                // Create a span for the canvas text (invisible, for highlighting)
+                const span = document.createElement('span');
+                span.className = 'metruyencv-sentence metruyencv-canvas-text';
+                span.textContent = segment;
+                span.style.display = 'none'; // Hide but keep for reference
+                
+                // Insert span after canvas
+                canvas.parentNode.insertBefore(span, canvas.nextSibling);
+                
+                const sanitized = cleanText(segment);
+                if (sanitized) {
+                  queue.push({ span, text: sanitized, raw: segment, isCanvas: true });
+                }
+              });
+            }
+          }
+        } catch (error) {
+          console.error('❌ Lỗi xử lý canvas:', error);
+          // Continue with other canvases
+        }
+      }
+      
+      if (processedCount > 0) {
+        console.log(`✅ Đã xử lý ${processedCount} canvas elements bằng OCR`);
+      }
+    }
+    
     if (!queue.length) {
       throw new Error('Không có nội dung để đọc.');
     }
+    
+    // Sort queue by DOM position to maintain reading order
+    queue.sort((a, b) => {
+      const aPos = a.span.compareDocumentPosition(b.span);
+      if (aPos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+      if (aPos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+      return 0;
+    });
+    
     return queue;
   };
 
-  const prepareQueue = () => {
-    state.queue = createSentenceQueue();
+  const prepareQueue = async () => {
+    state.queue = await createSentenceQueue();
     state.queueIndex = 0;
   };
 
@@ -365,26 +520,42 @@
     console.log('[TTS] Chapter meta:', meta);
     console.log('[TTS] autoNext setting:', state.settings.autoNext);
     
-    if (state.settings.autoNext && meta.nextUrl) {
+    if (!state.settings.autoNext) {
+      console.log('[TTS] autoNext is disabled');
+      sessionStorage.removeItem(AUTO_KEY);
+      return;
+    }
+    
+    // Save settings for next page
+    sessionStorage.setItem(
+      AUTO_KEY,
+      JSON.stringify({
+        resume: true,
+        settings: state.settings
+      })
+    );
+    
+    // Try URL first
+    if (meta.nextUrl) {
       console.log('[TTS] Auto-navigating to next chapter:', meta.nextUrl);
-      sessionStorage.setItem(
-        AUTO_KEY,
-        JSON.stringify({
-          resume: true,
-          settings: state.settings
-        })
-      );
-      // Small delay to ensure session storage is saved
       setTimeout(() => {
         window.location.href = meta.nextUrl;
       }, 500);
-    } else {
-      console.log('[TTS] Not auto-navigating. autoNext:', state.settings.autoNext, 'nextUrl:', meta.nextUrl);
+    } 
+    // Try clicking button
+    else if (meta.nextButton) {
+      console.log('[TTS] Clicking next chapter button');
+      setTimeout(() => {
+        meta.nextButton.click();
+      }, 500);
+    } 
+    else {
+      console.log('[TTS] No way to navigate to next chapter');
       sessionStorage.removeItem(AUTO_KEY);
     }
   };
 
-  const startReading = (settings = {}) => {
+  const startReading = async (settings = {}) => {
     // Stop any existing playback
     stopAllPlayback();
     
@@ -392,12 +563,20 @@
       ...state.settings,
       ...settings
     };
-    prepareQueue();
-    state.utterances = [];
-    state.queueIndex = 0;
-    state.status = 'reading';
-    emit(buildStatus());
-    playCurrentChunk();
+    
+    try {
+      await prepareQueue();
+      state.utterances = [];
+      state.queueIndex = 0;
+      state.status = 'reading';
+      emit(buildStatus());
+      playCurrentChunk();
+    } catch (error) {
+      console.error('Lỗi chuẩn bị queue:', error);
+      state.status = 'idle';
+      emit(buildStatus());
+      throw error;
+    }
   };
 
   const stopAllPlayback = () => {
@@ -469,14 +648,14 @@
     };
   };
 
-  const ensureAutoStart = () => {
+  const ensureAutoStart = async () => {
     const payload = sessionStorage.getItem(AUTO_KEY);
     if (!payload) return;
     try {
       const data = JSON.parse(payload);
       sessionStorage.removeItem(AUTO_KEY);
       if (data.resume) {
-        startReading(data.settings);
+        await startReading(data.settings);
       }
     } catch (error) {
       console.warn('Cannot parse auto settings', error);
@@ -512,13 +691,15 @@
         sendResponse(buildStatus());
         break;
       case 'startReading':
-        try {
-          startReading(message.settings);
-          sendResponse({ success: true });
-        } catch (error) {
-          sendResponse({ success: false, error: error.message });
-        }
-        break;
+        (async () => {
+          try {
+            await startReading(message.settings);
+            sendResponse({ success: true });
+          } catch (error) {
+            sendResponse({ success: false, error: error.message });
+          }
+        })();
+        return true; // Keep channel open for async response
       case 'pauseReading':
         pauseReading();
         sendResponse({ success: true });

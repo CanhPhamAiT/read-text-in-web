@@ -1,6 +1,6 @@
 """
-TTS Server - Vietnamese TTS using gTTS (Google Text-to-Speech)
-Falls back to Edge-TTS if gTTS fails.
+TTS Server - Vietnamese TTS 
+Uses gTTS (Google) as primary engine since edge-tts has SSL issues with corporate proxy.
 API compatible with extension.
 """
 
@@ -9,57 +9,40 @@ import io
 import ssl
 import warnings
 
-# Disable SSL warnings and verification
+# Disable SSL warnings
 warnings.filterwarnings('ignore')
 os.environ['PYTHONHTTPSVERIFY'] = '0'
 ssl._create_default_https_context = ssl._create_unverified_context
 
-# Patch urllib3 and requests to disable SSL verification
 try:
     import urllib3
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    urllib3.disable_warnings()
 except:
     pass
-
-import requests
-from requests.adapters import HTTPAdapter
-
-class SSLAdapter(HTTPAdapter):
-    def init_poolmanager(self, *args, **kwargs):
-        kwargs['ssl_context'] = ssl._create_unverified_context()
-        return super().init_poolmanager(*args, **kwargs)
-
-# Patch requests globally
-_original_session = requests.Session
-
-def _patched_session(*args, **kwargs):
-    session = _original_session(*args, **kwargs)
-    session.verify = False
-    session.mount('https://', SSLAdapter())
-    return session
-
-requests.Session = _patched_session
 
 from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
 from gtts import gTTS
 
 app = Flask(__name__)
-# Enable CORS for all routes - allows extension to access from any origin
 CORS(app)
 
-# Default Vietnamese voice
-DEFAULT_VOICE = os.environ.get('DEFAULT_VOICE', 'vi')
-
-# Available voices
+# Available voices (names for UI, but using gTTS backend)
 VOICES = {
-    'vi': 'Vietnamese',
-    'en': 'English',
+    'vi-VN-HoaiMyNeural': {'name': 'Hoài My (Nữ)', 'lang': 'vi', 'gender': 'female'},
+    'vi-VN-NamMinhNeural': {'name': 'Nam Minh (Nam)', 'lang': 'vi', 'gender': 'male'},
+    'en-US-JennyNeural': {'name': 'Jenny (English)', 'lang': 'en', 'gender': 'female'},
 }
 
+DEFAULT_VOICE = os.environ.get('DEFAULT_VOICE', 'vi-VN-HoaiMyNeural')
 
-def generate_audio_gtts(text: str, lang: str = 'vi'):
+
+def generate_audio(text: str, voice: str = DEFAULT_VOICE):
     """Generate audio using gTTS"""
+    # Map voice to language
+    voice_info = VOICES.get(voice, VOICES[DEFAULT_VOICE])
+    lang = voice_info['lang']
+    
     tts = gTTS(text=text, lang=lang, slow=False)
     audio_data = io.BytesIO()
     tts.write_to_fp(audio_data)
@@ -78,14 +61,26 @@ def tts():
         text = data.get('text', request.form.get('text', ''))
         voice = data.get('voice', DEFAULT_VOICE)
     
-    if not text:
+    if not text or not text.strip():
         return jsonify({'error': 'No text provided'}), 400
     
-    # Map voice to language code
-    lang = voice if voice in ['vi', 'en'] else 'vi'
+    # Map short voice codes to full names
+    voice_map = {
+        'vi': 'vi-VN-HoaiMyNeural',
+        'vi-female': 'vi-VN-HoaiMyNeural',
+        'vi-male': 'vi-VN-NamMinhNeural',
+        'en': 'en-US-JennyNeural',
+    }
+    voice = voice_map.get(voice, voice)
+    
+    # Validate voice
+    if voice not in VOICES:
+        voice = DEFAULT_VOICE
     
     try:
-        audio_bytes = generate_audio_gtts(text, lang)
+        audio_bytes = generate_audio(text, voice)
+        if not audio_bytes:
+            return jsonify({'error': 'No audio generated'}), 500
         return Response(audio_bytes, mimetype='audio/mpeg')
     except Exception as e:
         app.logger.error(f"TTS Error: {e}")
@@ -97,7 +92,7 @@ def list_voices():
     """List available voices"""
     return jsonify({
         'voices': [
-            {'id': k, 'name': v, 'lang': k} 
+            {'id': k, 'name': v['name'], 'lang': v['lang'], 'gender': v['gender']} 
             for k, v in VOICES.items()
         ],
         'default': DEFAULT_VOICE
@@ -111,7 +106,8 @@ def health():
 
 
 if __name__ == '__main__':
-    print(f"Starting gTTS Server (SSL verification DISABLED)...")
-    print(f"Default language: {DEFAULT_VOICE}")
-    print(f"Available languages: {list(VOICES.keys())}")
+    print(f"Starting TTS Server (gTTS backend)...")
+    print(f"Default voice: {DEFAULT_VOICE}")
+    print(f"Available voices: {list(VOICES.keys())}")
+    print(f"Note: Using gTTS due to corporate proxy SSL issues with edge-tts")
     app.run(host='0.0.0.0', port=5002, threaded=True)

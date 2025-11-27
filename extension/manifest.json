@@ -23,6 +23,7 @@
         "https://metruyencv.com/truyen/*/chuong-*"
       ],
       "js": [
+        "tesseract.min.js",
         "contentScript.js"
       ],
       "run_at": "document_idle"
