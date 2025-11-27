@@ -9,7 +9,8 @@
   // Detect site and get appropriate selector
   const getSiteConfig = () => {
     const hostname = window.location.hostname;
-    if (hostname.includes('tangthuvien.net')) {
+    // Support both desktop (tangthuvien.net) and mobile (m.tangthuvien.net) versions
+    if (hostname.includes('tangthuvien.net') || hostname.includes('m.tangthuvien.net')) {
       return {
         selector: '.chapter-c-content',
         site: 'tangthuvien'
@@ -120,12 +121,13 @@
   };
 
   const resolveChapterHeading = () => {
-    // For tangthuvien.net, try specific selectors first
+    // For tangthuvien.net (both desktop and mobile), try specific selectors first
     if (siteConfig.site === 'tangthuvien') {
       const selectors = [
         'h4', // Often used for chapter titles
         'h2',
         'h1',
+        'h5', // Mobile version might use h5
         '.chapter-title',
         '.chapter-name'
       ];
@@ -158,8 +160,10 @@
   };
 
   const getChapterMeta = () => {
-    // Handle tangthuvien.net
+    // Handle tangthuvien.net (both desktop and mobile versions)
     if (siteConfig.site === 'tangthuvien') {
+      const isMobile = window.location.hostname.includes('m.tangthuvien.net');
+      const baseUrl = isMobile ? 'https://m.tangthuvien.net' : 'https://tangthuvien.net';
       let nextUrl = null;
       let nextButton = null;
       let hasNext = false;
@@ -174,7 +178,7 @@
         
         // If it has a real href (not javascript:void(0))
         if (href && !href.startsWith('javascript:')) {
-          nextUrl = href.startsWith('http') ? href : `https://tangthuvien.net${href}`;
+          nextUrl = href.startsWith('http') ? href : `${baseUrl}${href}`;
           hasNext = true;
         } 
         // If it has onclick with NextChap, we can click it
@@ -188,9 +192,9 @@
           const urlMatch = currentUrl.match(/\/chuong-(\d+)/);
           if (urlMatch) {
             const currentChapterNum = parseInt(urlMatch[1]);
-            const baseUrl = currentUrl.match(/^https?:\/\/[^\/]+(\/doc-truyen\/[^\/]+)/)?.[1];
-            if (baseUrl) {
-              nextUrl = `https://tangthuvien.net${baseUrl}/chuong-${currentChapterNum + 1}`;
+            const urlPath = currentUrl.match(/^https?:\/\/[^\/]+(\/doc-truyen\/[^\/]+)/)?.[1];
+            if (urlPath) {
+              nextUrl = `${baseUrl}${urlPath}/chuong-${currentChapterNum + 1}`;
               hasNext = true;
             }
           }
@@ -208,7 +212,7 @@
         if (nextLink) {
           const href = nextLink.getAttribute('href');
           if (href && !href.startsWith('javascript:')) {
-            nextUrl = href.startsWith('http') ? href : `https://tangthuvien.net${href}`;
+            nextUrl = href.startsWith('http') ? href : `${baseUrl}${href}`;
             hasNext = true;
           } else {
             nextButton = nextLink;
@@ -223,9 +227,9 @@
         const urlMatch = currentUrl.match(/\/chuong-(\d+)/);
         if (urlMatch) {
           const currentChapterNum = parseInt(urlMatch[1]);
-          const baseUrl = currentUrl.match(/^https?:\/\/[^\/]+(\/doc-truyen\/[^\/]+)/)?.[1];
-          if (baseUrl) {
-            nextUrl = `https://tangthuvien.net${baseUrl}/chuong-${currentChapterNum + 1}`;
+          const urlPath = currentUrl.match(/^https?:\/\/[^\/]+(\/doc-truyen\/[^\/]+)/)?.[1];
+          if (urlPath) {
+            nextUrl = `${baseUrl}${urlPath}/chuong-${currentChapterNum + 1}`;
             hasNext = true;
           }
         }
