@@ -3,6 +3,11 @@
   "name": "Metruyencv Chapter Reader",
   "description": "Đọc to nội dung chương trên metruyencv.com và tự chuyển chương kế tiếp.",
   "version": "1.1.0",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "activeTab",
     "scripting",
@@ -15,7 +20,12 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Metruyencv Reader"
+    "default_title": "Metruyencv Reader",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "content_scripts": [
     {

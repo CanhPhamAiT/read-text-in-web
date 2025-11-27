@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Extension Icons</title>
+</head>
+<body>
+    <h1>Extension Icon Generator</h1>
+    <p>Click the button to download icons. Then save them to extension/icons/</p>
+    <button onclick="createIcons()">Create Icons</button>
+    <div id="output"></div>
+
+    <script>
+        function createIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#4285F4');
+            gradient.addColorStop(1, '#34A853');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Draw book icon
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size / 16;
+            
+            // Book shape
+            const margin = size / 4;
+            ctx.beginPath();
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(size - margin, margin);
+            ctx.lineTo(size - margin, size - margin);
+            ctx.lineTo(margin, size - margin);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Draw letter "M" in the center
+            ctx.fillStyle = '#4285F4';
+            ctx.font = `bold ${size * 0.6}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('M', size / 2, size / 2);
+            
+            return canvas.toDataURL('image/png');
+        }
+        
+        function createIcons() {
+            const sizes = [16, 48, 128];
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Downloading icons...</p>';
+            
+            sizes.forEach(size => {
+                const dataUrl = createIcon(size);
+                const link = document.createElement('a');
+                link.download = `icon${size}.png`;
+                link.href = dataUrl;
+                link.click();
+            });
+            
+            output.innerHTML = '<p style="color: green;">✅ Icons created! Save them to extension/icons/</p>';
+        }
+    </script>
+</body>
+</html>
+

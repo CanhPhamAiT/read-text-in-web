@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Extension Icons with M</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            background: #4285F4;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #357AE8;
+        }
+        #preview {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        .preview-item {
+            text-align: center;
+        }
+        .preview-item img {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Extension Icon Generator - Chữ M</h1>
+    <p>Click nút bên dưới để tạo và tải về các icon với chữ "M" ở giữa.</p>
+    <p>Sau đó lưu các file vào thư mục <code>extension/icons/</code></p>
+    <button onclick="createIcons()">Tạo Icons</button>
+    <div id="output"></div>
+    <div id="preview"></div>
+
+    <script>
+        function createIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient (blue to green)
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#4285F4'); // Google Blue
+            gradient.addColorStop(1, '#34A853'); // Google Green
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Draw white circle background for letter
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw letter "M" in white, bold
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size * 0.55}px Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('M', size / 2, size / 2);
+            
+            // Add subtle shadow for better visibility
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = size / 16;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = size / 32;
+            ctx.fillText('M', size / 2, size / 2);
+            
+            return canvas.toDataURL('image/png');
+        }
+        
+        function createIcons() {
+            const sizes = [16, 48, 128];
+            const output = document.getElementById('output');
+            const preview = document.getElementById('preview');
+            
+            output.innerHTML = '<p style="color: blue;">Đang tạo icons...</p>';
+            preview.innerHTML = '';
+            
+            sizes.forEach((size, index) => {
+                const dataUrl = createIcon(size);
+                
+                // Create download link
+                const link = document.createElement('a');
+                link.download = `icon${size}.png`;
+                link.href = dataUrl;
+                
+                // Trigger download after a small delay
+                setTimeout(() => {
+                    link.click();
+                }, index * 200);
+                
+                // Show preview
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                previewItem.innerHTML = `
+                    <img src="${dataUrl}" alt="icon${size}" style="width: ${size}px; height: ${size}px;">
+                    <p>icon${size}.png (${size}x${size})</p>
+                `;
+                preview.appendChild(previewItem);
+            });
+            
+            setTimeout(() => {
+                output.innerHTML = '<p style="color: green;">✅ Icons đã được tạo! Kiểm tra thư mục Downloads của bạn.</p><p>Lưu các file vào: <code>extension/icons/</code></p>';
+            }, sizes.length * 200 + 500);
+        }
+    </script>
+</body>
+</html>
+

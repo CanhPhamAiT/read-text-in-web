@@ -1,0 +1,12 @@
+# Files to exclude when creating ZIP for store upload
+*.md
+*.sh
+*.bat
+.git*
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
+.env
+*.zip
+

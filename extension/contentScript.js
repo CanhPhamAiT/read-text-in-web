@@ -73,7 +73,21 @@
   };
 
   const emit = (payload) => {
-    chrome.runtime.sendMessage({ type: 'reader-status', payload }).catch(() => {});
+    try {
+      // Kiểm tra xem có đang chạy trong extension context không
+      if (typeof chrome !== 'undefined' && 
+          chrome.runtime && 
+          chrome.runtime.sendMessage &&
+          chrome.runtime.id) {
+        chrome.runtime.sendMessage({ type: 'reader-status', payload }).catch(() => {
+          // Silently fail if popup is not open or runtime is not available
+        });
+      }
+    } catch (error) {
+      // Ignore errors when runtime is not available
+      // This can happen if extension is reloaded or context is lost
+      console.debug('Cannot send message to runtime:', error);
+    }
   };
 
   const resolveChapterHeading = () => {
