@@ -14,12 +14,18 @@
     queueIndex: 0,
     utterances: [],
     settings: {
+      engine: 'browser', // 'browser' | 'coqui'
       rate: 1,
       pitch: 1,
       voiceURI: null,
+      coquiVoice: 'vi', // 'vi' | 'en'
       autoNext: true,
-      sanitize: true
-    }
+      sanitize: true,
+      coquiUrl: 'http://localhost:5002'
+    },
+    // Coqui TTS state
+    coquiAudio: null,
+    coquiAbortController: null
   };
 
   const SENTENCE_REGEX = /[^.?!。？！…]+[.?!。？！…"]*\s*/g;
@@ -92,8 +98,36 @@
     const slug = data?.book?.slug;
     const currentIndex = data?.chapter?.index;
     const nextIndex = data?.chapter?.next?.index;
-    const hasNext = Boolean(slug && nextIndex);
-    const nextUrl = hasNext ? `https://metruyencv.com/truyen/${slug}/chuong-${nextIndex}` : null;
+    let hasNext = Boolean(slug && nextIndex);
+    let nextUrl = hasNext ? `https://metruyencv.com/truyen/${slug}/chuong-${nextIndex}` : null;
+    
+    // Fallback: Try to find "Chương sau" button if chapterData is not available
+    if (!nextUrl) {
+      // Try finding by text content (avoid invalid CSS selectors)
+      const buttons = Array.from(document.querySelectorAll('button, a'));
+      const nextBtn = buttons.find(btn => 
+        btn.textContent?.toLowerCase().includes('chương sau') ||
+        btn.textContent?.toLowerCase().includes('tiếp') ||
+        btn.getAttribute('aria-label')?.toLowerCase().includes('next')
+      );
+      if (nextBtn) {
+        const href = nextBtn.getAttribute('href') || nextBtn.closest('a')?.getAttribute('href');
+        if (href && href.includes('chuong-')) {
+          nextUrl = href.startsWith('http') ? href : `https://metruyencv.com${href}`;
+          hasNext = true;
+        }
+      }
+      
+      // Another fallback: Look for link with next chapter number
+      if (!nextUrl && currentIndex) {
+        const nextChapterLink = document.querySelector(`a[href*="chuong-${currentIndex + 1}"]`);
+        if (nextChapterLink) {
+          nextUrl = nextChapterLink.href;
+          hasNext = true;
+        }
+      }
+    }
+    
     const currentName = (data?.chapter?.name || '').trim() || resolveChapterHeading();
     return {
       slug,
@@ -160,6 +194,9 @@
     state.queueIndex = 0;
   };
 
+  // ============================================
+  // Browser TTS (Web Speech API)
+  // ============================================
   const loadVoice = (voiceURI) => {
     const voices = speechSynthesis.getVoices();
     if (!voiceURI) {
@@ -168,7 +205,7 @@
     return voices.find((voice) => voice.voiceURI === voiceURI) || null;
   };
 
-  const playCurrentChunk = () => {
+  const playBrowserTTS = () => {
     if (state.queueIndex >= state.queue.length) {
       handleChapterFinished();
       return;
@@ -185,7 +222,7 @@
     utter.onend = () => {
       state.queueIndex += 1;
       if (state.status === 'reading') {
-        playCurrentChunk();
+        playBrowserTTS();
       }
     };
     utter.onerror = (event) => {
@@ -199,12 +236,137 @@
     speechSynthesis.speak(utter);
   };
 
+  // ============================================
+  // Google TTS (Local Server)
+  // ============================================
+  const playCoquiTTS = async () => {
+    if (state.queueIndex >= state.queue.length) {
+      handleChapterFinished();
+      return;
+    }
+
+    const current = state.queue[state.queueIndex];
+    highlightSentence(current?.span);
+    
+    const text = current?.text || '';
+    
+    // Skip empty or punctuation-only chunks
+    const meaningfulText = text.replace(/[.,!?;:'"()\-–—…\s]/g, '');
+    if (!meaningfulText) {
+      console.log(`[TTS] Skipping empty/punctuation chunk ${state.queueIndex + 1}/${state.queue.length}: "${text}"`);
+      state.queueIndex += 1;
+      if (state.status === 'reading') {
+        playCoquiTTS();
+      }
+      return;
+    }
+    
+    console.log(`[TTS] Playing chunk ${state.queueIndex + 1}/${state.queue.length}: "${text.substring(0, 50)}..."`);
+
+    try {
+      // Create abort controller for cancellation
+      state.coquiAbortController = new AbortController();
+      
+      // Google TTS API uses query parameters
+      const encodedText = encodeURIComponent(text);
+      const voice = state.settings.coquiVoice || 'vi';
+      const url = `${state.settings.coquiUrl}/api/tts?text=${encodedText}&voice=${voice}`;
+      console.log(`[TTS] Fetching: ${url} (voice: ${voice}, rate: ${state.settings.rate})`);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        signal: state.coquiAbortController.signal
+      });
+
+      console.log(`[TTS] Response status: ${response.status}, type: ${response.headers.get('content-type')}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`TTS server error: ${response.status} - ${errorText}`);
+      }
+
+      // Get audio as blob directly from response
+      const audioBlob = await response.blob();
+      console.log(`[TTS] Got audio blob: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
+      
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // Play using Audio element
+      state.coquiAudio = new Audio(audioUrl);
+      
+      // Apply playback speed from settings (0.8 - 2.4)
+      state.coquiAudio.playbackRate = state.settings.rate || 1;
+      console.log(`[TTS] Playback rate set to: ${state.coquiAudio.playbackRate}`);
+      
+      state.coquiAudio.onended = () => {
+        console.log(`[TTS] Audio ended, moving to next chunk`);
+        URL.revokeObjectURL(audioUrl);
+        state.queueIndex += 1;
+        if (state.status === 'reading') {
+          playCoquiTTS();
+        }
+      };
+
+      state.coquiAudio.onerror = (event) => {
+        console.error('[TTS] Audio playback error:', event);
+        URL.revokeObjectURL(audioUrl);
+        state.status = 'idle';
+        clearHighlight();
+        emit(buildStatus());
+      };
+
+      // Only play if still in reading state
+      if (state.status === 'reading') {
+        console.log(`[TTS] Starting playback at rate ${state.coquiAudio.playbackRate}...`);
+        await state.coquiAudio.play();
+        console.log(`[TTS] Playback started`);
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log(`[TTS] Playback aborted`);
+        return;
+      }
+      console.error('[TTS] Error:', error);
+      
+      // Continue to next chunk instead of stopping completely
+      console.log('[TTS] Skipping to next chunk due to error...');
+      state.queueIndex += 1;
+      if (state.status === 'reading' && state.queueIndex < state.queue.length) {
+        // Small delay before retrying
+        setTimeout(() => playCoquiTTS(), 100);
+      } else if (state.queueIndex >= state.queue.length) {
+        handleChapterFinished();
+      } else {
+        state.status = 'idle';
+        clearHighlight();
+        emit(buildStatus());
+      }
+    }
+  };
+
+  // ============================================
+  // Unified playback control
+  // ============================================
+  const playCurrentChunk = () => {
+    if (state.settings.engine === 'coqui') {
+      playCoquiTTS();
+    } else {
+      playBrowserTTS();
+    }
+  };
+
   const handleChapterFinished = () => {
+    console.log('[TTS] Chapter finished!');
     state.status = 'idle';
     clearHighlight();
     emit(buildStatus());
+    
     const meta = getChapterMeta();
+    console.log('[TTS] Chapter meta:', meta);
+    console.log('[TTS] autoNext setting:', state.settings.autoNext);
+    
     if (state.settings.autoNext && meta.nextUrl) {
+      console.log('[TTS] Auto-navigating to next chapter:', meta.nextUrl);
       sessionStorage.setItem(
         AUTO_KEY,
         JSON.stringify({
@@ -212,16 +374,20 @@
           settings: state.settings
         })
       );
-      window.location.href = meta.nextUrl;
+      // Small delay to ensure session storage is saved
+      setTimeout(() => {
+        window.location.href = meta.nextUrl;
+      }, 500);
     } else {
+      console.log('[TTS] Not auto-navigating. autoNext:', state.settings.autoNext, 'nextUrl:', meta.nextUrl);
       sessionStorage.removeItem(AUTO_KEY);
     }
   };
 
   const startReading = (settings = {}) => {
-    if (state.status === 'reading') {
-      speechSynthesis.cancel();
-    }
+    // Stop any existing playback
+    stopAllPlayback();
+    
     state.settings = {
       ...state.settings,
       ...settings
@@ -234,22 +400,54 @@
     playCurrentChunk();
   };
 
+  const stopAllPlayback = () => {
+    // Stop browser TTS
+    speechSynthesis.cancel();
+    
+    // Stop Coqui TTS
+    if (state.coquiAbortController) {
+      state.coquiAbortController.abort();
+      state.coquiAbortController = null;
+    }
+    if (state.coquiAudio) {
+      state.coquiAudio.pause();
+      state.coquiAudio.src = '';
+      state.coquiAudio = null;
+    }
+  };
+
   const pauseReading = () => {
     if (state.status !== 'reading') return;
-    speechSynthesis.pause();
+    
+    if (state.settings.engine === 'coqui') {
+      if (state.coquiAudio) {
+        state.coquiAudio.pause();
+      }
+    } else {
+      speechSynthesis.pause();
+    }
+    
     state.status = 'paused';
     emit(buildStatus());
   };
 
   const resumeReading = () => {
     if (state.status !== 'paused') return;
-    speechSynthesis.resume();
+    
+    if (state.settings.engine === 'coqui') {
+      if (state.coquiAudio) {
+        state.coquiAudio.play();
+      }
+    } else {
+      speechSynthesis.resume();
+    }
+    
     state.status = 'reading';
     emit(buildStatus());
   };
 
   const stopReading = () => {
-    speechSynthesis.cancel();
+    stopAllPlayback();
     state.status = 'idle';
     state.queue = [];
     state.queueIndex = 0;
@@ -343,9 +541,8 @@
   });
 
   window.addEventListener('beforeunload', () => {
-    speechSynthesis.cancel();
+    stopAllPlayback();
   });
 
   ensureAutoStart();
 })();
-

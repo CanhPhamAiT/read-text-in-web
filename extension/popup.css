@@ -96,3 +96,72 @@ button:disabled {
   font-size: 13px;
 }
 
+/* TTS Engine Options */
+#browserOptions,
+#coquiOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+#coquiOptions[hidden] {
+  display: none;
+}
+
+#coquiUrl {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #475569;
+  border-radius: 4px;
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 13px;
+}
+
+#coquiUrl:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.coqui-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.coqui-status .label {
+  font-size: 13px;
+}
+
+#coquiStatus {
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #334155;
+}
+
+#coquiStatus.online {
+  background: #166534;
+  color: #bbf7d0;
+}
+
+#coquiStatus.offline {
+  background: #991b1b;
+  color: #fecaca;
+}
+
+.small-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #475569;
+}
+
+.small-btn:hover {
+  background: #64748b;
+}
+

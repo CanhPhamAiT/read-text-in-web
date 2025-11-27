@@ -1,0 +1,14 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install gTTS (Google TTS), flask, flask-cors, and requests
+RUN pip install --no-cache-dir gTTS flask flask-cors requests urllib3
+
+# Copy server script
+COPY edge-tts-server.py /app/server.py
+
+EXPOSE 5002
+
+CMD ["python", "server.py"]
+

@@ -1,0 +1,14 @@
+services:
+  # Edge-TTS Server - Vietnamese voice support (recommended)
+  edge-tts:
+    build:
+      context: .
+      dockerfile: Dockerfile.edge-tts
+    container_name: edge-tts
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    environment:
+      # Vietnamese voices: vi-VN-HoaiMyNeural (female), vi-VN-NamMinhNeural (male)
+      DEFAULT_VOICE: ${EDGE_TTS_VOICE:-vi-VN-HoaiMyNeural}
+
