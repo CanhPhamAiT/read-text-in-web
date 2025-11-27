@@ -14,6 +14,16 @@
     speechSynthesis.cancel();
   }
   
+  // Remove old event listeners if they exist
+  if (window.__chapter_reader_message_handler) {
+    window.removeEventListener('message', window.__chapter_reader_message_handler);
+    window.__chapter_reader_message_handler = null;
+  }
+  if (window.__chapter_reader_beforeunload_handler) {
+    window.removeEventListener('beforeunload', window.__chapter_reader_beforeunload_handler);
+    window.__chapter_reader_beforeunload_handler = null;
+  }
+  
   // Set flag to prevent multiple simultaneous injections
   if (window.__chapter_reader_injecting__) {
     return;
@@ -580,13 +590,26 @@
 
   const playBrowserTTS = () => {
     if (state.queueIndex >= state.queue.length) {
+      console.log('[Chapter Reader] Queue finished');
       handleChapterFinished();
       return;
     }
-    const voice = loadVoice(state.settings.voiceURI);
+    
     const current = state.queue[state.queueIndex];
+    if (!current || !current.text) {
+      console.warn('[Chapter Reader] Empty chunk, skipping');
+      state.queueIndex += 1;
+      if (state.status === 'reading') {
+        playBrowserTTS();
+      }
+      return;
+    }
+    
+    console.log(`[Chapter Reader] Playing chunk ${state.queueIndex + 1}/${state.queue.length}: "${current.text.substring(0, 50)}..."`);
+    
+    const voice = loadVoice(state.settings.voiceURI);
     highlightSentence(current?.span);
-    const utter = new SpeechSynthesisUtterance(current?.text || '');
+    const utter = new SpeechSynthesisUtterance(current.text);
     utter.rate = state.settings.rate;
     utter.pitch = state.settings.pitch;
     if (voice) {
@@ -599,7 +622,7 @@
       }
     };
     utter.onerror = (event) => {
-      console.error('Speech synthesis error', event);
+      console.error('[Chapter Reader] Speech synthesis error', event);
       state.status = 'idle';
       speechSynthesis.cancel();
       clearHighlight();
@@ -774,23 +797,47 @@
   };
 
   const startReading = async (settings = {}) => {
+    console.log('[Chapter Reader] startReading called with settings:', settings);
+    
     // Stop any existing playback
     stopAllPlayback();
     
+    // Reset state completely
+    state.queue = [];
+    state.queueIndex = 0;
+    state.utterances = [];
+    state.status = 'idle';
+    
     state.settings = {
-      ...state.settings,
+      engine: 'browser',
+      rate: 1,
+      pitch: 1,
+      voiceURI: null,
+      coquiVoice: 'vi',
+      autoNext: true,
+      sanitize: true,
+      coquiUrl: 'http://localhost:5002',
       ...settings
     };
     
     try {
+      console.log('[Chapter Reader] Preparing queue...');
       await prepareQueue();
+      console.log('[Chapter Reader] Queue prepared, length:', state.queue.length);
+      
+      if (state.queue.length === 0) {
+        throw new Error('Không có nội dung để đọc. Queue rỗng.');
+      }
+      
       state.utterances = [];
       state.queueIndex = 0;
       state.status = 'reading';
       emit(buildStatus());
+      
+      console.log('[Chapter Reader] Starting playback, engine:', state.settings.engine);
       playCurrentChunk();
     } catch (error) {
-      console.error('Lỗi chuẩn bị queue:', error);
+      console.error('[Chapter Reader] Lỗi chuẩn bị queue:', error);
       state.status = 'idle';
       emit(buildStatus());
       throw error;
@@ -903,18 +950,21 @@
     );
 
   // Listen for messages from PWA or extension
-  window.addEventListener('message', async (event) => {
+  const messageHandler = async (event) => {
     // Only accept messages from same origin or trusted sources
     if (event.data?.type?.startsWith('chapter-reader-')) {
       const message = event.data;
+      console.log('[Chapter Reader] Received message:', message);
       
       switch (message.type) {
         case 'chapter-reader-command':
           if (message.command === 'start') {
             try {
+              console.log('[Chapter Reader] Starting reading with settings:', message.settings);
               await startReading(message.settings || {});
               window.postMessage({ type: 'chapter-reader-response', success: true }, '*');
             } catch (error) {
+              console.error('[Chapter Reader] Error starting reading:', error);
               window.postMessage({ type: 'chapter-reader-response', success: false, error: error.message }, '*');
             }
           } else if (message.command === 'pause') {
@@ -934,7 +984,10 @@
           break;
       }
     }
-  });
+  };
+  
+  window.__chapter_reader_message_handler = messageHandler;
+  window.addEventListener('message', messageHandler);
 
   // Also listen for extension messages (backward compatibility)
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
@@ -976,9 +1029,12 @@
     });
   }
 
-  window.addEventListener('beforeunload', () => {
+  const beforeunloadHandler = () => {
     stopAllPlayback();
-  });
+  };
+  
+  window.__chapter_reader_beforeunload_handler = beforeunloadHandler;
+  window.addEventListener('beforeunload', beforeunloadHandler);
 
   ensureAutoStart();
 })();
