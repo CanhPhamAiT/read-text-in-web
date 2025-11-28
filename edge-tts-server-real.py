@@ -156,16 +156,23 @@ def options_handler(path):
 
 @app.route('/health', methods=['GET'])
 def health():
-    """Health check endpoint"""
+    """Health check endpoint - Returns JSON with version info"""
+    # Force JSON response, not text
     response = jsonify({
         'status': 'ok', 
         'engine': 'edge-tts',
         'cors': 'enabled',
-        'version': '2.0.0'
+        'version': '2.0.0',
+        'timestamp': __import__('datetime').datetime.now().isoformat()
     })
+    # Explicitly set content-type to JSON
+    response.headers['Content-Type'] = 'application/json'
     response.headers.add("Access-Control-Allow-Origin", "*")
     response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    response.headers.add("Cache-Control", "no-cache, no-store, must-revalidate")
+    response.headers.add("Pragma", "no-cache")
+    response.headers.add("Expires", "0")
     return response
 
 @app.route('/test-cors', methods=['GET'])
@@ -177,9 +184,11 @@ def test_cors():
         'allowed_origin': '*',
         'timestamp': __import__('datetime').datetime.now().isoformat()
     })
+    response.headers['Content-Type'] = 'application/json'
     response.headers.add("Access-Control-Allow-Origin", "*")
     response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    response.headers.add("Cache-Control", "no-cache, no-store, must-revalidate")
     return response
 
 
