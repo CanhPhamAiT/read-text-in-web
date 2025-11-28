@@ -157,7 +157,26 @@ def options_handler(path):
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
-    response = jsonify({'status': 'ok', 'engine': 'edge-tts'})
+    response = jsonify({
+        'status': 'ok', 
+        'engine': 'edge-tts',
+        'cors': 'enabled',
+        'version': '2.0.0'
+    })
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    return response
+
+@app.route('/test-cors', methods=['GET'])
+def test_cors():
+    """Test endpoint to verify CORS is working"""
+    response = jsonify({
+        'message': 'CORS test endpoint',
+        'cors_enabled': True,
+        'allowed_origin': '*',
+        'timestamp': __import__('datetime').datetime.now().isoformat()
+    })
     response.headers.add("Access-Control-Allow-Origin", "*")
     response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -166,9 +185,12 @@ def health():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5002))
-    print(f"Starting Edge-TTS Server...")
+    print("=" * 50)
+    print("Starting Edge-TTS Server v2.0.0")
+    print("CORS: ENABLED (all origins allowed)")
     print(f"Default voice: {DEFAULT_VOICE}")
     print(f"Available voices: {list(VOICES.keys())}")
     print(f"Port: {port}")
+    print("=" * 50)
     app.run(host='0.0.0.0', port=port, threaded=True)
 
