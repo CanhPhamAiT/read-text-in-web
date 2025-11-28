@@ -3,6 +3,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install both edge-tts and gTTS as fallback
+# Using gTTS for local development (edge-tts has SSL issues with corporate proxy)
 RUN pip install --no-cache-dir edge-tts flask flask-cors gtts
 
 COPY edge-tts-server.py server.py

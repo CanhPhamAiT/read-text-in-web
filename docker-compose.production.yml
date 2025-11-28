@@ -1,0 +1,15 @@
+services:
+  # Edge-TTS Server - Production version (uses real edge-tts, not gTTS)
+  edge-tts:
+    build:
+      context: .
+      dockerfile: Dockerfile.edge-tts.production
+    container_name: edge-tts-production
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    environment:
+      # Vietnamese voices: vi-VN-HoaiMyNeural (female), vi-VN-NamMinhNeural (male)
+      DEFAULT_VOICE: ${EDGE_TTS_VOICE:-vi-VN-HoaiMyNeural}
+      PORT: 5002
+

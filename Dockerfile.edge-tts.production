@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install edge-tts and Flask (production version - uses real edge-tts)
+RUN pip install --no-cache-dir edge-tts flask flask-cors
+
+# Use real edge-tts server (better quality than gTTS)
+COPY edge-tts-server-real.py server.py
+
+EXPOSE 5002
+
+# Use PORT environment variable if provided (for Railway, Render, etc.)
+ENV PORT=5002
+
+CMD ["python", "server.py"]
+
