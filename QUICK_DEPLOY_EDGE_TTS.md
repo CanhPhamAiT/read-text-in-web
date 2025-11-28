@@ -7,8 +7,8 @@
 2. **Deploy:**
    - New Project → Deploy from GitHub repo
    - Chọn repo của bạn
-   - Railway tự động detect Dockerfile
-   - **Hoặc:** Chọn "Dockerfile" → Chọn `Dockerfile.edge-tts.production`
+   - Railway sẽ tự động detect `railway.json` hoặc `railway.toml`
+   - **Nếu không detect:** Vào Settings → Build → Dockerfile Path → Set `Dockerfile.edge-tts.production`
 
 3. **Lấy URL:**
    - Settings → Domains → Copy URL
@@ -52,6 +52,10 @@
 ---
 
 ## 🆘 Troubleshooting
+
+**Railway không detect Dockerfile?**
+- Xem [RAILWAY_FIX.md](./RAILWAY_FIX.md) để biết cách fix
+- Hoặc vào Settings → Build → Dockerfile Path → Set `Dockerfile.edge-tts.production`
 
 **Server không hoạt động?**
 - Kiểm tra logs trong Railway/Render dashboard

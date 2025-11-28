@@ -25,12 +25,22 @@ Có nhiều cách để deploy edge-tts server lên các platform miễn phí. D
    - Chọn repository của bạn
 
 3. **Deploy Docker:**
-   - Railway sẽ tự detect `docker-compose.yml` hoặc `Dockerfile`
-   - Hoặc tạo service mới → "Dockerfile" → Chọn `Dockerfile.edge-tts.production`
+   
+   **Option A: Tự động (khuyến nghị):**
+   - Railway sẽ tự động detect `railway.json` hoặc `railway.toml`
+   - File này đã được config để dùng `Dockerfile.edge-tts.production`
+   - Railway sẽ tự động build và deploy
+   
+   **Option B: Manual:**
+   - Tạo service mới → "Dockerfile" → Chọn `Dockerfile.edge-tts.production`
    - Set port: `5002`
    
    **Lưu ý:** Dùng `Dockerfile.edge-tts.production` cho production (edge-tts thực sự), 
    còn `Dockerfile.edge-tts` dùng cho local (gTTS fallback)
+   
+   **Nếu Railway không detect:**
+   - Vào Settings → Build → Dockerfile Path
+   - Set: `Dockerfile.edge-tts.production`
 
 4. **Cấu hình Environment Variables:**
    ```

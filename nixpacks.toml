@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["python311"]
+
+[phases.install]
+cmds = [
+  "pip install --no-cache-dir edge-tts flask flask-cors"
+]
+
+[start]
+cmd = "python edge-tts-server-real.py"
+
+[providers]
+docker = "Dockerfile.edge-tts.production"
+
