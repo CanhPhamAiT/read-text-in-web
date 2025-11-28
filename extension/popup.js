@@ -21,11 +21,13 @@ const coquiRateInput = document.getElementById('coquiRate');
 const coquiRateValue = document.getElementById('coquiRateValue');
 const serverLocal = document.getElementById('serverLocal');
 const serverRailway = document.getElementById('serverRailway');
+const serverRender = document.getElementById('serverRender');
 
 // Server URLs
 const SERVER_URLS = {
   local: 'http://localhost:5002',
-  railway: 'https://agile-heart.railway.app'
+  railway: 'https://agile-heart.railway.app',
+  render: 'https://edge-tts-server.onrender.com' // Alternative: Render.com (no cache issues)
 };
 
 const startBtn = document.getElementById('startBtn');
@@ -328,12 +330,21 @@ serverRailway.addEventListener('change', () => {
   }
 });
 
+serverRender.addEventListener('change', () => {
+  if (serverRender.checked) {
+    handleServerLocationChange('render');
+  }
+});
+
 coquiUrlInput.addEventListener('change', () => {
   chrome.storage.local.set({ coquiUrl: coquiUrlInput.value });
   // If user manually changes URL, switch to custom mode
-  if (coquiUrlInput.value !== SERVER_URLS.local && coquiUrlInput.value !== SERVER_URLS.railway) {
+  if (coquiUrlInput.value !== SERVER_URLS.local && 
+      coquiUrlInput.value !== SERVER_URLS.railway &&
+      coquiUrlInput.value !== SERVER_URLS.render) {
     serverLocal.checked = false;
     serverRailway.checked = false;
+    serverRender.checked = false;
   }
 });
 
@@ -366,6 +377,9 @@ const init = async () => {
     if (stored.serverLocation === 'railway') {
       serverRailway.checked = true;
       coquiUrlInput.value = SERVER_URLS.railway;
+    } else if (stored.serverLocation === 'render') {
+      serverRender.checked = true;
+      coquiUrlInput.value = SERVER_URLS.render;
     } else {
       serverLocal.checked = true;
       coquiUrlInput.value = SERVER_URLS.local;
@@ -375,6 +389,9 @@ const init = async () => {
     if (stored.coquiUrl === SERVER_URLS.railway) {
       serverRailway.checked = true;
       coquiUrlInput.value = SERVER_URLS.railway;
+    } else if (stored.coquiUrl === SERVER_URLS.render) {
+      serverRender.checked = true;
+      coquiUrlInput.value = SERVER_URLS.render;
     } else if (stored.coquiUrl === SERVER_URLS.local) {
       serverLocal.checked = true;
       coquiUrlInput.value = SERVER_URLS.local;
