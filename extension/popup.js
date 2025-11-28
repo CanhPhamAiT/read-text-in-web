@@ -19,6 +19,14 @@ const checkCoquiBtn = document.getElementById('checkCoquiBtn');
 const coquiVoiceSelect = document.getElementById('coquiVoiceSelect');
 const coquiRateInput = document.getElementById('coquiRate');
 const coquiRateValue = document.getElementById('coquiRateValue');
+const serverLocal = document.getElementById('serverLocal');
+const serverRailway = document.getElementById('serverRailway');
+
+// Server URLs
+const SERVER_URLS = {
+  local: 'http://localhost:5002',
+  railway: 'https://agile-heart.railway.app'
+};
 
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
@@ -120,17 +128,52 @@ const checkCoquiServer = async () => {
   coquiStatus.className = '';
   
   try {
-    const response = await fetch(`${url}/health`);
+    const response = await fetch(`${url}/health`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json, text/plain, */*'
+      }
+    });
+    
     if (response.ok) {
+      // Try to parse as JSON first, fallback to text
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        // Check if response is "OK" or similar success indicators
+        if (text.trim().toUpperCase() === 'OK' || text.includes('ok') || text.includes('status')) {
+          data = { status: 'ok' };
+        } else {
+          // Try to parse as JSON anyway
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = { status: 'ok' }; // Assume OK if we got a response
+          }
+        }
+      }
+      
       coquiStatus.textContent = 'Online ✓';
       coquiStatus.className = 'online';
     } else {
-      coquiStatus.textContent = 'Lỗi kết nối';
+      coquiStatus.textContent = `Lỗi ${response.status}`;
       coquiStatus.className = 'offline';
     }
   } catch (error) {
+    console.error('Server check error:', error);
     coquiStatus.textContent = 'Offline ✗';
     coquiStatus.className = 'offline';
+    
+    // Show more specific error for CORS issues
+    if (error.message && error.message.includes('CORS')) {
+      coquiStatus.textContent = 'CORS Error ✗';
+    } else if (error.message && error.message.includes('Failed to fetch')) {
+      coquiStatus.textContent = 'Không kết nối được ✗';
+    }
   }
 };
 
@@ -174,16 +217,43 @@ startBtn.addEventListener('click', async () => {
     if (settings.engine === 'coqui') {
       coquiStatus.textContent = 'Đang kiểm tra...';
       try {
-        const response = await fetch(`${settings.coquiUrl}/health`);
+        const response = await fetch(`${settings.coquiUrl}/health`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json, text/plain, */*'
+          }
+        });
+        
         if (!response.ok) {
-          throw new Error('Server không phản hồi');
+          throw new Error(`Server trả về lỗi ${response.status}`);
         }
+        
+        // Accept both JSON and text "OK" responses
+        const contentType = response.headers.get('content-type');
+        const text = await response.text();
+        
+        // Check if response indicates success
+        const isOk = (contentType && contentType.includes('application/json')) ||
+                     text.trim().toUpperCase() === 'OK' ||
+                     text.includes('ok') ||
+                     text.includes('status');
+        
+        if (!isOk) {
+          throw new Error('Server response không hợp lệ');
+        }
+        
         coquiStatus.textContent = 'Online ✓';
         coquiStatus.className = 'online';
       } catch (error) {
+        console.error('Server validation error:', error);
         coquiStatus.textContent = 'Offline ✗';
         coquiStatus.className = 'offline';
-        showError('TTS server không khả dụng. Hãy chạy docker-compose up.');
+        
+        const errorMsg = error.message && error.message.includes('Failed to fetch')
+          ? 'TTS server không khả dụng. Kiểm tra URL và đảm bảo server đang chạy.'
+          : 'TTS server không khả dụng. Hãy chạy docker-compose up hoặc kiểm tra Railway server.';
+        
+        showError(errorMsg);
         return;
       }
     }
@@ -234,8 +304,37 @@ coquiRateInput.addEventListener('input', () => {
   coquiRateValue.textContent = Number(coquiRateInput.value).toFixed(1);
 });
 
+// Server location change handler
+const handleServerLocationChange = (location) => {
+  const url = SERVER_URLS[location] || SERVER_URLS.local;
+  coquiUrlInput.value = url;
+  chrome.storage.local.set({ 
+    serverLocation: location,
+    coquiUrl: url 
+  });
+  // Auto check server when switching
+  checkCoquiServer();
+};
+
+serverLocal.addEventListener('change', () => {
+  if (serverLocal.checked) {
+    handleServerLocationChange('local');
+  }
+});
+
+serverRailway.addEventListener('change', () => {
+  if (serverRailway.checked) {
+    handleServerLocationChange('railway');
+  }
+});
+
 coquiUrlInput.addEventListener('change', () => {
   chrome.storage.local.set({ coquiUrl: coquiUrlInput.value });
+  // If user manually changes URL, switch to custom mode
+  if (coquiUrlInput.value !== SERVER_URLS.local && coquiUrlInput.value !== SERVER_URLS.railway) {
+    serverLocal.checked = false;
+    serverRailway.checked = false;
+  }
 });
 
 coquiVoiceSelect.addEventListener('change', () => {
@@ -256,14 +355,39 @@ chrome.runtime.onMessage.addListener((message) => {
 // Initialize on load
 const init = async () => {
   // Load saved preferences
-  const stored = await chrome.storage.local.get(['ttsEngine', 'coquiUrl', 'coquiVoice', 'coquiRate']);
+  const stored = await chrome.storage.local.get(['ttsEngine', 'coquiUrl', 'coquiVoice', 'coquiRate', 'serverLocation']);
   
   if (stored.ttsEngine) {
     engineSelect.value = stored.ttsEngine;
   }
-  if (stored.coquiUrl) {
-    coquiUrlInput.value = stored.coquiUrl;
+  
+  // Set server location
+  if (stored.serverLocation) {
+    if (stored.serverLocation === 'railway') {
+      serverRailway.checked = true;
+      coquiUrlInput.value = SERVER_URLS.railway;
+    } else {
+      serverLocal.checked = true;
+      coquiUrlInput.value = SERVER_URLS.local;
+    }
+  } else if (stored.coquiUrl) {
+    // Legacy: check if saved URL matches known servers
+    if (stored.coquiUrl === SERVER_URLS.railway) {
+      serverRailway.checked = true;
+      coquiUrlInput.value = SERVER_URLS.railway;
+    } else if (stored.coquiUrl === SERVER_URLS.local) {
+      serverLocal.checked = true;
+      coquiUrlInput.value = SERVER_URLS.local;
+    } else {
+      // Custom URL
+      coquiUrlInput.value = stored.coquiUrl;
+    }
+  } else {
+    // Default to local
+    serverLocal.checked = true;
+    coquiUrlInput.value = SERVER_URLS.local;
   }
+  
   if (stored.coquiVoice) {
     coquiVoiceSelect.value = stored.coquiVoice;
   }

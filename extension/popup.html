@@ -42,6 +42,19 @@
       </div>
       <div id="coquiOptions" style="display: none;">
         <label>
+          Server Location
+          <div class="server-switch">
+            <label class="radio-label">
+              <input type="radio" name="serverLocation" value="local" id="serverLocal" checked />
+              <span>Local (localhost:5002)</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="serverLocation" value="railway" id="serverRailway" />
+              <span>Railway (Cloud)</span>
+            </label>
+          </div>
+        </label>
+        <label>
           Server URL
           <input type="text" id="coquiUrl" value="http://localhost:5002" placeholder="http://localhost:5002" />
         </label>

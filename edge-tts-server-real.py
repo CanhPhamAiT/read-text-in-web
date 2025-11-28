@@ -11,7 +11,14 @@ from flask_cors import CORS
 import edge_tts
 
 app = Flask(__name__)
-CORS(app)
+# Allow all origins for extension and web access
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 # Available voices
 VOICES = {

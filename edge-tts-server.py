@@ -25,7 +25,14 @@ from flask_cors import CORS
 from gtts import gTTS
 
 app = Flask(__name__)
-CORS(app)
+# Allow all origins for extension and web access
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 # Available voices (names for UI, but using gTTS backend)
 VOICES = {

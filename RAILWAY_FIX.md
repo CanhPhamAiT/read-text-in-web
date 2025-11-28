@@ -120,8 +120,10 @@ Nếu Railway không tự động detect Dockerfile, làm theo các bước sau:
 curl https://your-app.railway.app/health
 
 # Test TTS
-curl "https://your-app.railway.app/api/tts?text=Hello&voice=vi-VN-HoaiMyNeural" --output test.mp3
+curl "https://agile-heart.railway.app/api/tts?text=Hello&voice=vi-VN-HoaiMyNeural" --output test.mp3
 ```
 
 Nếu trả về `{"status":"ok","engine":"edge-tts"}` → ✅ Thành công!
+
+curl https://agile-heart.railway.app/health
 
