@@ -31,6 +31,14 @@ def handle_preflight():
         response.headers.add("Access-Control-Max-Age", "3600")
         return response
 
+# Add CORS headers to all responses
+@app.after_request
+def after_request(response):
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    return response
+
 # Available voices
 VOICES = {
     'vi-VN-HoaiMyNeural': {'name': 'Hoài My (Nữ)', 'lang': 'vi', 'gender': 'female'},
@@ -139,10 +147,17 @@ def health():
     if request.method == 'OPTIONS':
         response = Response()
         response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Methods", "GET, OPTIONS")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+        response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Max-Age", "3600")
         return response
-    return jsonify({'status': 'ok', 'engine': 'edge-tts'})
+    
+    # GET request - return JSON with CORS headers
+    response = jsonify({'status': 'ok', 'engine': 'edge-tts'})
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    return response
 
 
 if __name__ == '__main__':
