@@ -20,7 +20,7 @@ PWA cần được host trên HTTPS (hoặc localhost cho development).
 1. Push code lên GitHub repository
 2. Vào Settings → Pages
 3. Chọn branch và folder `pwa`
-4. Access qua: `https://your-username.github.io/repo-name/pwa/`
+4. Access qua: `https://canhphamait.github.io/read-text-in-web/pwa/`
 
 **Option 2: Netlify/Vercel (Miễn phí)**
 1. Deploy folder `pwa` lên Netlify hoặc Vercel

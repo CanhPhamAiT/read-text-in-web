@@ -23,8 +23,11 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
+  min-height: -webkit-fill-available; /* iOS Safari */
   display: flex;
   flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 header {
@@ -114,6 +117,8 @@ main {
   cursor: move;
   user-select: none;
   transition: background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .bookmarklet-btn:hover {
@@ -140,6 +145,12 @@ main {
   border: 1px solid var(--accent);
   border-radius: 6px;
   transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .site-link:hover {
@@ -229,6 +240,8 @@ button {
   font-size: 14px;
   transition: all 0.2s;
   min-height: 44px; /* Better touch target */
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+  touch-action: manipulation; /* Improve touch response */
 }
 
 button:disabled {
@@ -348,8 +361,21 @@ footer {
     padding: 12px;
   }
 
+  header {
+    padding: 16px 12px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
   .card {
     padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .card h2 {
+    font-size: 16px;
   }
 
   .buttons {
@@ -369,6 +395,72 @@ footer {
   .bookmarklet-btn {
     text-align: center;
   }
+
+  form {
+    gap: 14px;
+  }
+
+  label {
+    gap: 8px;
+  }
+
+  select,
+  input[type='text'],
+  input[type='range'] {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Tablet and larger mobile */
+@media (min-width: 601px) and (max-width: 1024px) {
+  main {
+    padding: 16px;
+    max-width: 900px;
+  }
+
+  .buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop improvements */
+@media (min-width: 1025px) {
+  main {
+    max-width: 900px;
+  }
+
+  .card {
+    padding: 24px;
+  }
+
+  button {
+    min-height: 48px;
+  }
+
+  .bookmarklet-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Touch device improvements */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  .bookmarklet-btn,
+  .site-link {
+    min-height: 48px;
+    padding: 14px 24px;
+  }
+
+  input[type='range'] {
+    height: 8px;
+    min-height: 44px; /* Better touch target */
+  }
+
+  .checkbox input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 /* Dark mode support (if system prefers light) */
@@ -380,5 +472,44 @@ footer {
     --text-secondary: #475569;
     --border: #e2e8f0;
   }
+}
+
+/* Safe area insets for notched devices (iOS, Android) */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+
+  header {
+    padding-top: max(20px, env(safe-area-inset-top));
+  }
+
+  footer {
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent text selection on buttons (better UX) */
+button,
+.bookmarklet-btn {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Improve scrolling on mobile */
+html {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Better focus indicators for accessibility */
+button:focus-visible,
+.bookmarklet-btn:focus-visible,
+.site-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 

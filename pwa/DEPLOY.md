@@ -19,7 +19,7 @@
    - Save
 
 3. **Access PWA:**
-   - URL: `https://your-username.github.io/repo-name/pwa/`
+   - URL: `https://canhphamait.github.io/read-text-in-web/pwa/`
    - Hoặc custom domain nếu có
 
 4. **Cập nhật URLs trong code:**

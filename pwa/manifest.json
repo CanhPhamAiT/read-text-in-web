@@ -2,48 +2,61 @@
   "name": "Metruyencv Chapter Reader",
   "short_name": "Chapter Reader",
   "description": "Đọc to nội dung chương truyện trên metruyencv.com và tangthuvien.net",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#2563eb",
-  "orientation": "portrait-primary",
-  "scope": "/",
+  "scope": "./",
+  "lang": "vi",
+  "dir": "ltr",
   "icons": [
     {
       "src": "icons/icon72.png",
       "sizes": "72x72",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "icons/icon96.png",
       "sizes": "96x96",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "icons/icon128.png",
       "sizes": "128x128",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "icons/icon144.png",
       "sizes": "144x144",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "icons/icon192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["books", "entertainment", "utilities"],
@@ -53,7 +66,7 @@
       "name": "Mở trang truyện",
       "short_name": "Mở truyện",
       "description": "Mở trang đọc truyện",
-      "url": "/?action=open",
+      "url": "./?action=open",
       "icons": [{ "src": "icons/icon96.png", "sizes": "96x96" }]
     }
   ]

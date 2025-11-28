@@ -38,10 +38,7 @@ git push
 ## ✅ Bước 3: Kiểm tra
 
 1. **Đợi vài phút** để GitHub build và deploy
-2. **Vào URL:** `https://your-username.github.io/repo-name/pwa/`
-   - Thay `your-username` = tên GitHub của bạn
-   - Thay `repo-name` = tên repository
-   - Thay `pwa` = tên folder chứa PWA (nếu deploy từ root thì bỏ `/pwa`)
+2. **Vào URL:** `https://canhphamait.github.io/read-text-in-web/pwa/`
 
 3. **Kiểm tra PWA hoạt động:**
    - Mở DevTools (F12)
@@ -55,10 +52,9 @@ Nếu PWA không hoạt động đúng, kiểm tra:
 1. **Mở `pwa/app.js`**
 2. **Tìm function `generateBookmarklet()`**
 3. **URL sẽ tự động detect từ `window.location.origin`**
-4. **Nếu cần fix thủ công, thay đổi:**
-   ```javascript
-   const pwaUrl = 'https://your-username.github.io/repo-name/pwa';
-   ```
+4. **URL tự động được detect từ `window.location.origin`**
+   - Không cần thay đổi thủ công
+   - Khi deploy lên `https://canhphamait.github.io/read-text-in-web/pwa/`, URL sẽ tự động là đúng
 
 ## ⚠️ Lưu ý về "Verified domains"
 

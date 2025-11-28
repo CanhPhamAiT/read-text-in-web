@@ -36,7 +36,19 @@ let injectedWindow = null;
 
 // Generate bookmarklet URL
 const generateBookmarklet = () => {
-  const pwaUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '');
+  // Get base URL, handling trailing slashes
+  let pathname = window.location.pathname;
+  // Remove trailing slash if present
+  if (pathname.endsWith('/')) {
+    pathname = pathname.slice(0, -1);
+  }
+  // Remove filename if present (e.g., index.html)
+  pathname = pathname.replace(/\/[^\/]*$/, '');
+  // Ensure we have at least a slash
+  if (!pathname || pathname === '/') {
+    pathname = '';
+  }
+  const pwaUrl = window.location.origin + pathname;
   const injectUrl = `${pwaUrl}/inject.js`;
   
   const bookmarkletCode = `javascript:(function(){const injectUrl='${injectUrl}';const scriptId='chapter-reader-inject-script';let existingScript=document.getElementById(scriptId);if(existingScript){existingScript.remove();}if(window.__chapter_reader_injected__){delete window.__chapter_reader_injected__;}const script=document.createElement('script');script.id=scriptId;script.src=injectUrl;script.onerror=function(){alert('Không thể tải script. Kiểm tra URL: '+injectUrl);};script.onload=function(){window.__chapter_reader_injected__=true;};document.head.appendChild(script);let panel=document.getElementById('chapter-reader-panel');if(panel){panel.remove();}panel=document.createElement('div');panel.id='chapter-reader-panel';panel.innerHTML='<div style="position:fixed;bottom:20px;right:20px;z-index:99999;background:#0f172a;color:white;padding:15px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.3);max-width:300px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong>📖 Chapter Reader</strong><button id="close-panel" style="background:#dc2626;color:white;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;">✕</button></div><div id="reader-status" style="font-size:12px;margin-bottom:10px;">Đang tải...</div><div style="display:flex;gap:5px;flex-wrap:wrap;"><button id="reader-start" style="flex:1;padding:8px;background:#2563eb;color:white;border:none;border-radius:4px;cursor:pointer;">Bắt đầu</button><button id="reader-pause" style="flex:1;padding:8px;background:#475569;color:white;border:none;border-radius:4px;cursor:pointer;display:none;">Tạm dừng</button><button id="reader-stop" style="padding:8px;background:#dc2626;color:white;border:none;border-radius:4px;cursor:pointer;">Dừng</button></div></div>';document.body.appendChild(panel);document.getElementById('close-panel').onclick=function(){panel.remove();};window.addEventListener('message',function(e){if(e.data.type==='chapter-reader-status'){const status=document.getElementById('reader-status');if(status)status.textContent='Trạng thái: '+e.data.status+' | Chương: '+(e.data.chapter||'-');}});document.getElementById('reader-start').onclick=function(){window.postMessage({type:'chapter-reader-command',command:'start',settings:{engine:'browser',rate:1,pitch:1,autoNext:true,sanitize:true}},'*');};document.getElementById('reader-pause').onclick=function(){window.postMessage({type:'chapter-reader-command',command:'pause'},'*');};document.getElementById('reader-stop').onclick=function(){window.postMessage({type:'chapter-reader-command',command:'stop'},'*');};setTimeout(function(){const status=document.getElementById('reader-status');if(status)status.textContent='Đã cài đặt';},1000);})();`;
@@ -300,12 +312,40 @@ const init = async () => {
   // Register service worker
   if ('serviceWorker' in navigator) {
     try {
-      await navigator.serviceWorker.register('/service-worker.js');
-      console.log('Service Worker registered');
+      const registration = await navigator.serviceWorker.register('./service-worker.js', {
+        scope: './'
+      });
+      console.log('Service Worker registered:', registration.scope);
+      
+      // Check for updates
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // New service worker available, prompt user to reload
+            console.log('New service worker available');
+          }
+        });
+      });
     } catch (error) {
       console.error('Service Worker registration failed:', error);
     }
   }
+  
+  // Handle install prompt (for PWA installation)
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // You can show a custom install button here if needed
+    console.log('PWA install prompt available');
+  });
+  
+  // Listen for app installed
+  window.addEventListener('appinstalled', () => {
+    console.log('PWA installed');
+    deferredPrompt = null;
+  });
   
   // Load saved preferences
   const stored = {

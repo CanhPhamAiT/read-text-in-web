@@ -1,17 +1,17 @@
-const CACHE_NAME = 'chapter-reader-v1.1.0';
+const CACHE_NAME = 'chapter-reader-v1.2.0';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/app.js',
-  '/app.css',
-  '/manifest.json',
-  '/inject.js',
-  '/icons/icon72.png',
-  '/icons/icon96.png',
-  '/icons/icon128.png',
-  '/icons/icon144.png',
-  '/icons/icon192.png',
-  '/icons/icon512.png'
+  './',
+  './index.html',
+  './app.js',
+  './app.css',
+  './manifest.json',
+  './inject.js',
+  './icons/icon72.png',
+  './icons/icon96.png',
+  './icons/icon128.png',
+  './icons/icon144.png',
+  './icons/icon192.png',
+  './icons/icon512.png'
 ];
 
 // Install event - cache resources
@@ -39,8 +39,12 @@ self.addEventListener('activate', (event) => {
             console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
+          return Promise.resolve();
         })
       );
+    }).catch((error) => {
+      console.error('Cache cleanup failed:', error);
+      return Promise.resolve();
     })
   );
   return self.clients.claim();
@@ -61,6 +65,29 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Handle navigation requests (page loads)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache successful responses
+          if (response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // If network fails, try cache
+          return caches.match('./index.html');
+        })
+    );
+    return;
+  }
+
+  // Handle other requests (assets, etc.)
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -85,7 +112,7 @@ self.addEventListener('fetch', (event) => {
       .catch(() => {
         // If both cache and network fail, return offline page if available
         if (event.request.destination === 'document') {
-          return caches.match('/index.html');
+          return caches.match('./index.html');
         }
       })
   );

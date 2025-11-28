@@ -5,10 +5,10 @@ Progressive Web App version của Chapter Reader - có thể cài đặt như ap
 ## 🚀 Quick Start
 
 1. **Host PWA** trên HTTPS (GitHub Pages, Netlify, Vercel, hoặc server riêng)
-2. **Cập nhật URLs** trong `bookmarklet.js` và `index.html`
-3. **Mở PWA** trong trình duyệt
-4. **Cài đặt bookmarklet** (kéo nút vào bookmark bar)
-5. **Sử dụng** trên trang truyện
+   - **Live URL:** `https://canhphamait.github.io/read-text-in-web/pwa/`
+2. **Mở PWA** trong trình duyệt (URL sẽ tự động được detect)
+3. **Cài đặt bookmarklet** (kéo nút vào bookmark bar)
+4. **Sử dụng** trên trang truyện
 
 ## 📱 Cài đặt trên Android
 
