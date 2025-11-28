@@ -21,10 +21,11 @@ CORS(app, resources={
 }, supports_credentials=True)
 
 # Explicit OPTIONS handler for all routes (for Railway reverse proxy)
+# This must be before any other routes to catch OPTIONS requests
 @app.before_request
 def handle_preflight():
     if request.method == "OPTIONS":
-        response = Response()
+        response = Response(status=200)
         response.headers.add("Access-Control-Allow-Origin", "*")
         response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -141,18 +142,21 @@ def list_voices():
     })
 
 
-@app.route('/health', methods=['GET', 'OPTIONS'])
+# Catch-all OPTIONS route (must be before specific routes)
+@app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+@app.route('/<path:path>', methods=['OPTIONS'])
+def options_handler(path):
+    """Catch-all OPTIONS handler for CORS preflight"""
+    response = Response(status=200)
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    response.headers.add("Access-Control-Max-Age", "3600")
+    return response
+
+@app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
-    if request.method == 'OPTIONS':
-        response = Response()
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        response.headers.add("Access-Control-Max-Age", "3600")
-        return response
-    
-    # GET request - return JSON with CORS headers
     response = jsonify({'status': 'ok', 'engine': 'edge-tts'})
     response.headers.add("Access-Control-Allow-Origin", "*")
     response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
